@@ -55,8 +55,9 @@ function love.keypressed(key)
 end
 ```
 
-This will create a folder `recorder_xxxx` that contains the captured frames
-and the output video in the save directory of your game.
+This will create a folder `awesome_video` or `recorder_xxxx` (if `out_dir` is
+not passed) that contains the captured frames and the output video in the save
+directory of your game.
 
 ## DEPENDENCIES
 
