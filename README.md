@@ -38,12 +38,12 @@ function love.keypressed(key)
 			Peeker.stop()
 		else
 			Peeker.start({
-				w = 320,
-				h = 320,
+				w = 320, --optional
+				h = 320, --optional
 				n_threads = 2,
 				fps = 15,
-				out_dir = string.format("recording_" .. os.time()),
-				format = "mkv",
+				out_dir = string.format("awesome_video"), --optional
+				format = "mkv", --optional
 			})
 		end
 	elseif key == "s" then

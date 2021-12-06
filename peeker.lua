@@ -31,11 +31,7 @@ local thread_code = [[
 require("love.image")
 local image_data, i, out_dir = ...
 local filename = string.format("%04d.png", i)
-
-if out_dir then
-	filename = out_dir .. "/" .. filename
-end
-
+filename = out_dir .. "/" .. filename
 image_data:encode("png", filename)
 love.thread.getChannel("status"):push(i)
 ]]
@@ -62,7 +58,6 @@ end
 
 function Peeker.start(opt)
 	assert(type(opt) == "table")
-	assert(type(opt.out_dir) == "string")
 	sassert(opt.w, type(opt.w) == "number" and opt.w > 0,
 		"opt.w must be a positive integer")
 	sassert(opt.h, type(opt.h) == "number" and opt.h > 0,
@@ -73,6 +68,8 @@ function Peeker.start(opt)
 		"opt.n_threads should not be > " .. MAX_N_THREAD .. " max available threads")
 	sassert(opt.fps, type(opt.fps) == "number" and opt.fps > 0,
 		"opt.fps must be a positive integer")
+	sassert(opt.out_dir, type(opt.out_dir) == "string",
+		"opt.out_dir must be a string")
 	sassert(opt.format, type(opt.format) == "string"
 		and within_itable(opt.format, supported_formats),
 		"opt.format must be either: " .. table.concat(supported_formats))
@@ -83,20 +80,18 @@ function Peeker.start(opt)
 	OPT.h = OPT.h or wh
 	OPT.fps = OPT.fps or 15
 	OPT.format = OPT.format or "mp4"
+	OPT.out_dir = OPT.out_dir or string.format("recording_" .. os.time())
 
-	canvas = love.graphics.newCanvas(OPT.w, OPT.h)
-
-	if OPT.out_dir then
-		local info = love.filesystem.getInfo(OPT.out_dir)
-		if not info then
-			love.filesystem.createDirectory(OPT.out_dir)
-		end
+	local info = love.filesystem.getInfo(OPT.out_dir)
+	if not info then
+		love.filesystem.createDirectory(OPT.out_dir)
 	end
 
 	for i = 1, OPT.n_threads do
 		threads[i] = love.thread.newThread(thread_code)
 	end
 
+	canvas = love.graphics.newCanvas(OPT.w, OPT.h)
 	cur_frame = 0
 	timer = 0
 	is_recording = true
@@ -108,11 +103,7 @@ end
 
 function Peeker.finalize()
 	Peeker.stop()
-	local path = love.filesystem.getSaveDirectory()
-	if OPT.out_dir then
-		path = path .. "/" .. OPT.out_dir
-	end
-
+	local path = love.filesystem.getSaveDirectory() .. "/" .. OPT.out_dir
 	if OS == "Linux" then
 		local cmd_cd = string.format("cd '%s'", path)
 		local cmd_ffmpeg = string.format("ffmpeg -framerate '%d' -i '%%04d.png' output.%s;",
