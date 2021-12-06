@@ -1,6 +1,6 @@
 # PEEKER
 
-Multi-threaded screen recorder for LOVE, made in LOVE, for LOVE.
+Multi-threaded screen recorder for [LOVE](https://love2d.org), made in LOVE, for LOVE.
 
 ## FEATURES
 
