@@ -6,7 +6,8 @@ Multi-threaded screen recorder for [LOVE](https://love2d.org), made in LOVE, for
 
 * Multi-threaded
 * Can record multiple videos in a single launch of love
-* Supports mp4, mkv, webm format
+* Can use different resolution/quality for recorded output
+* Supports mp4, mkv, webm formats
 * No audio
 
 ## USAGE
