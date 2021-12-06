@@ -42,6 +42,7 @@ local timer, cur_frame = 0, 0
 local is_recording = false
 
 local supported_formats = {"mp4", "mkv", "webm"}
+local str_supported_formats = table.concat(supported_formats)
 local OPT
 
 local function sassert(var, cond, msg)
@@ -72,7 +73,7 @@ function Peeker.start(opt)
 		"opt.out_dir must be a string")
 	sassert(opt.format, type(opt.format) == "string"
 		and within_itable(opt.format, supported_formats),
-		"opt.format must be either: " .. table.concat(supported_formats))
+		"opt.format must be either: " .. str_supported_formats)
 
 	local ww, wh = love.graphics.getDimensions()
 	OPT = opt
@@ -104,11 +105,18 @@ end
 function Peeker.finalize()
 	Peeker.stop()
 	local path = love.filesystem.getSaveDirectory() .. "/" .. OPT.out_dir
+	local cmd
+	local cmd_cd = string.format("cd '%s'", path)
+	local cmd_ffmpeg = string.format("ffmpeg -framerate '%d' -i '%%04d.png' output.%s;",
+		OPT.fps, OPT.format)
+
 	if OS == "Linux" then
-		local cmd_cd = string.format("cd '%s'", path)
-		local cmd_ffmpeg = string.format("ffmpeg -framerate '%d' -i '%%04d.png' output.%s;",
-			OPT.fps, OPT.format)
-		local cmd = string.format("bash -c '%s && %s'", cmd_cd, cmd_ffmpeg)
+		cmd = string.format("bash -c '%s && %s'", cmd_cd, cmd_ffmpeg)
+	elseif OS == "Windows" then
+		cmd = string.format("%s && %s", cmd_cd, cmd_ffmpeg)
+	end
+
+	if cmd then
 		os.execute(cmd)
 	end
 end
