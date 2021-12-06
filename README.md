@@ -26,7 +26,9 @@ end
 function love.draw()
 	Peeker.attach()
 		love.graphics.setColor(1, 0, 0, 1)
-		love.graphics.circle("fill", 160 + math.sin(timer) * 64, 160 + math.cos(timer) * 64, 20)
+		love.graphics.circle("fill",
+			160 + math.sin(timer) * 64,
+			160 + math.cos(timer) * 64, 20)
 		love.graphics.setColor(1, 1, 1, 1)
 		love.graphics.print("Is Recording: " .. tostring(Peeker.get_status()), 32, 32)
 		love.graphics.print("I: " .. tostring(Peeker.get_current_frame()), 32, 64)
