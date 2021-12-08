@@ -118,6 +118,7 @@ function Peeker.finalize()
 
 	if cmd then
 		os.execute(cmd)
+		print("Video creation finished")
 	end
 end
 
