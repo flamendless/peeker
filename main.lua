@@ -14,8 +14,7 @@ function love.draw()
 			160 + math.sin(timer) * 64,
 			160 + math.cos(timer) * 64, 20)
 		love.graphics.setColor(1, 1, 1, 1)
-		love.graphics.print("Is Recording: " .. tostring(Peeker.get_status()), 32, 32)
-		love.graphics.print("I: " .. tostring(Peeker.get_current_frame()), 32, 64)
+		love.graphics.print("Frame recorded: " .. tostring(Peeker.get_current_frame()), 32, 64)
 	Peeker.detach()
 end
 
@@ -31,6 +30,7 @@ function love.keypressed(key)
 				fps = 15,
 				out_dir = string.format("awesome_video"), --optional
 				-- format = "mkv", --optional
+				overlay = "circle", --or "text"
 			})
 		end
 	elseif key == "s" then

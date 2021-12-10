@@ -43,7 +43,7 @@ local is_recording = false
 
 local supported_formats = {"mp4", "mkv", "webm"}
 local str_supported_formats = table.concat(supported_formats)
-local OPT
+local OPT = {}
 
 local function sassert(var, cond, msg)
 	if var == nil then return end
@@ -74,6 +74,8 @@ function Peeker.start(opt)
 	sassert(opt.format, type(opt.format) == "string"
 		and within_itable(opt.format, supported_formats),
 		"opt.format must be either: " .. str_supported_formats)
+	sassert(opt.overlay, type(opt.overlay) == "string"
+		and (opt.overlay == "circle" or opt.overlay == "text"))
 
 	local ww, wh = love.graphics.getDimensions()
 	OPT = opt
@@ -170,6 +172,15 @@ function Peeker.detach()
 	if not is_recording then return end
 	love.graphics.setCanvas()
 	love.graphics.draw(canvas)
+
+	if OPT.overlay then
+		love.graphics.setColor(1, 0, 0, 1)
+		if OPT.overlay == "text" then
+			love.graphics.print("RECORDING", 4, 4)
+		elseif OPT.overlay == "circle" then
+			love.graphics.circle("fill", 12, 12, 8)
+		end
+	end
 end
 
 function Peeker.get_status()
