@@ -82,6 +82,7 @@ function Peeker.start(opt)
 	OPT.fps = OPT.fps or 15
 	OPT.format = OPT.format or "mp4"
 	OPT.out_dir = OPT.out_dir or string.format("recording_" .. os.time())
+	OPT.flags = select(3, love.window.getMode())
 
 	local info = love.filesystem.getInfo(OPT.out_dir)
 	if not info then
@@ -105,20 +106,29 @@ end
 function Peeker.finalize()
 	Peeker.stop()
 	local path = love.filesystem.getSaveDirectory() .. "/" .. OPT.out_dir
-	local cmd
-	local cmd_cd = string.format("cd '%s'", path)
-	local cmd_ffmpeg = string.format("ffmpeg -framerate '%d' -i '%%04d.png' output.%s;",
-		OPT.fps, OPT.format)
+	local flags, cmd = "", ""
+
+	if OPT.format == "mp4" then
+		flags = "-filter:v format=yuv420p -movflags +faststart"
+	end
 
 	if OS == "Linux" then
+		local cmd_ffmpeg = string.format("ffmpeg -framerate %d -i '%%04d.png' %s output.%s;",
+			OPT.fps, flags, OPT.format)
+		local cmd_cd = string.format("cd '%s'", path)
 		cmd = string.format("bash -c '%s && %s'", cmd_cd, cmd_ffmpeg)
 	elseif OS == "Windows" then
+		local cmd_ffmpeg = string.format("ffmpeg -framerate %d -i %%04d.png %s output.%s",
+			OPT.fps, flags, OPT.format)
+		local cmd_cd = string.format("cd /d %q", path)
 		cmd = string.format("%s && %s", cmd_cd, cmd_ffmpeg)
 	end
 
 	if cmd then
-		os.execute(cmd)
-		print("Video creation finished")
+		print(cmd)
+		local res = os.execute(cmd)
+		local msg = res == 0 and "OK" or "PROBLEM ENCOUNTERED"
+		print("Video creation status: " .. msg)
 	end
 end
 
@@ -148,7 +158,11 @@ end
 
 function Peeker.attach()
 	if not is_recording then return end
-	love.graphics.setCanvas(canvas)
+	love.graphics.setCanvas({
+		canvas,
+		stencil = OPT.flags.stencil,
+		depth = OPT.flags.depth,
+	})
 	love.graphics.clear()
 end
 

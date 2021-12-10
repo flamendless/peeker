@@ -30,7 +30,7 @@ function love.keypressed(key)
 				n_threads = 2,
 				fps = 15,
 				out_dir = string.format("awesome_video"), --optional
-				format = "mkv", --optional
+				-- format = "mkv", --optional
 			})
 		end
 	elseif key == "s" then
