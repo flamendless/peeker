@@ -231,17 +231,21 @@ end
 
 function Peeker.detach()
 	if not is_recording then return end
+	local r, g, b, a = love.graphics.getColor()
 	love.graphics.setCanvas()
+	love.graphics.setColor(1, 1, 1)
 	love.graphics.draw(canvas)
 
 	if OPT.overlay then
-		love.graphics.setColor(1, 0, 0, 1)
+		love.graphics.setColor(1, 0, 0)
 		if OPT.overlay == "text" then
 			love.graphics.print("RECORDING", 4, 4)
 		elseif OPT.overlay == "circle" then
 			love.graphics.circle("fill", 12, 12, 8)
 		end
 	end
+
+	love.graphics.setColor(r, g, b, a)
 end
 
 function Peeker.get_status()
