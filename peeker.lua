@@ -27,22 +27,37 @@ local Peeker = {}
 local MAX_N_THREAD = love.system.getProcessorCount()
 local OS = love.system.getOS()
 
-local thread_code = [[
+local FILENAME = "%04d.png"
+
+local THREAD_CODE = [[
+require("love.filesystem")
 require("love.image")
-local image_data, i, out_dir = ...
-local filename = string.format("%04d.png", i)
-filename = out_dir .. "/" .. filename
-local res = image_data:encode("png", filename)
-if res then
-	love.thread.getChannel("status"):push(i)
-else
-	print(i, res)
+
+local chan = ...
+
+while true do
+	local data = chan:demand()
+
+	if not data then
+		break
+	elseif type(data[1]) == "string" then
+		-- copy frame
+		if love.filesystem.getInfo(data[1], "file") then
+			love.filesystem.write(data[2], love.filesystem.read(data[1]))
+		else
+			-- requeue
+			chan:push(data)
+		end
+	else
+		-- encode
+		data[1]:encode("png", data[2])
+	end
 end
 ]]
 
 local threads = {}
-local canvas
-local timer, cur_frame = 0, 0
+local canvas, channel
+local timer, cur_frame, last_frame = 0, 0, 0
 local is_recording = false
 
 local supported_formats = {"mp4", "mkv", "webm"}
@@ -59,6 +74,10 @@ local function within_itable(v, t)
 		if v == v2 then return true end
 	end
 	return false
+end
+
+local function get_filename(i)
+	return string.format("%s/%s", OPT.out_dir, string.format(FILENAME, i))
 end
 
 function Peeker.start(opt)
@@ -99,13 +118,20 @@ function Peeker.start(opt)
 	end
 	love.filesystem.createDirectory(OPT.out_dir)
 
+	channel = love.thread.newChannel()
+
 	for i = 1, OPT.n_threads do
-		threads[i] = love.thread.newThread(thread_code)
+		if not threads[i] then
+			threads[i] = love.thread.newThread(THREAD_CODE)
+		end
+
+		threads[i]:start(channel)
 	end
 
 	canvas = love.graphics.newCanvas(OPT.w, OPT.h)
 	cur_frame = 0
 	timer = 0
+	last_frame = 0
 	is_recording = true
 end
 
@@ -113,6 +139,16 @@ function Peeker.stop(finalize)
 	sassert(finalize, type(finalize) == "boolean")
 	is_recording = false
 	if not finalize then return end
+
+	-- Send quit command
+	for _ = 1, OPT.n_threads do
+		channel:push(false)
+	end
+
+	-- Wait thread to finish
+	for i = 1, OPT.n_threads do
+		threads[i]:wait()
+	end
 
 	local path = love.filesystem.getSaveDirectory() .. "/" .. OPT.out_dir
 	local flags, cmd = "", ""
@@ -143,30 +179,44 @@ end
 
 function Peeker.update(dt)
 	if not is_recording then return end
+	local first = true
 	timer = timer + dt
-	local image_data = canvas:newImageData()
-	local found = false
-	for _, thread in ipairs(threads) do
-		if not thread:isRunning() then
-			thread:start(image_data, cur_frame, OPT.out_dir)
-			found = true
-			break
-		end
-		local err = thread:getError()
-		if err then
-			print(err)
-		end
-	end
 
-	if not found then
-		for _, thread in ipairs(threads) do
-			thread:wait()
-			break
-		end
-	end
+	-- There are some considerations needs to be taken care of
+	-- 1. If the encoding thread can't keep up with lots of the command sent:
+	-- 1a. If there are 4x thread amount of commands, duplicate frames
+	-- 1b. If there are 8x thread amount of commands, ignore frames completely
+	-- 2. If the delta time is larger than the target FPS (game lagging), duplicate frames
+	-- CAVEAT: With the 1st point edge case handling, command queue may filled entirely with
+	-- copy commands. This can happen if the copy command comes faster than the thread can process.
+	while timer >= 1/OPT.fps do
+		local count = channel:getCount()
 
-	local status = love.thread.getChannel("status"):pop()
-	if status then cur_frame = cur_frame + 1 end
+		if count >= OPT.n_threads * 8 then
+			-- YELL!
+			print("CAN'T KEEP UP! IGNORING FRAMES INSTEAD!")
+		else
+			cur_frame = cur_frame + 1
+
+			if count >= OPT.n_threads * 4 then
+				print("Can't keep up. Duplicating frames instead!")
+				channel:push({get_filename(last_frame), get_filename(cur_frame)})
+			else
+				if first then
+					local image_data = canvas:newImageData()
+					print(cur_frame)
+					channel:push({image_data, get_filename(cur_frame)})
+					last_frame = cur_frame
+					first = false
+				else
+					-- Looks like the game lags. Just send copy command.
+					channel:push({get_filename(last_frame), get_filename(cur_frame)})
+				end
+			end
+		end
+
+		timer = timer - 1/OPT.fps
+	end
 end
 
 function Peeker.attach()
