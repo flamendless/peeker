@@ -32,8 +32,12 @@ require("love.image")
 local image_data, i, out_dir = ...
 local filename = string.format("%04d.png", i)
 filename = out_dir .. "/" .. filename
-image_data:encode("png", filename)
-love.thread.getChannel("status"):push(i)
+local res = image_data:encode("png", filename)
+if res then
+	love.thread.getChannel("status"):push(i)
+else
+	print(i, res)
+end
 ]]
 
 local threads = {}
@@ -63,9 +67,9 @@ function Peeker.start(opt)
 		"opt.w must be a positive integer")
 	sassert(opt.h, type(opt.h) == "number" and opt.h > 0,
 		"opt.h must be a positive integer")
-	assert(type(opt.n_threads) == "number" and opt.n_threads > 0,
+	sassert(opt.n_threads, type(opt.n_threads) == "number" and opt.n_threads > 0,
 		"opt.n_threads must be a positive integer")
-	assert(opt.n_threads <= MAX_N_THREAD,
+	sassert(opt.n_threads, opt.n_threads and opt.n_threads <= MAX_N_THREAD,
 		"opt.n_threads should not be > " .. MAX_N_THREAD .. " max available threads")
 	sassert(opt.fps, type(opt.fps) == "number" and opt.fps > 0,
 		"opt.fps must be a positive integer")
@@ -81,15 +85,19 @@ function Peeker.start(opt)
 	OPT = opt
 	OPT.w = OPT.w or ww
 	OPT.h = OPT.h or wh
+	OPT.n_threads = OPT.n_threads or MAX_N_THREAD
 	OPT.fps = OPT.fps or 15
 	OPT.format = OPT.format or "mp4"
 	OPT.out_dir = OPT.out_dir or string.format("recording_" .. os.time())
 	OPT.flags = select(3, love.window.getMode())
 
-	local info = love.filesystem.getInfo(OPT.out_dir)
-	if not info then
-		love.filesystem.createDirectory(OPT.out_dir)
+	local n = 0
+	local orig = OPT.out_dir
+	while (love.filesystem.getInfo(OPT.out_dir)) do
+		n = n + 1
+		OPT.out_dir = orig .. n
 	end
+	love.filesystem.createDirectory(OPT.out_dir)
 
 	for i = 1, OPT.n_threads do
 		threads[i] = love.thread.newThread(thread_code)
@@ -101,12 +109,11 @@ function Peeker.start(opt)
 	is_recording = true
 end
 
-function Peeker.stop()
+function Peeker.stop(finalize)
+	sassert(finalize, type(finalize) == "boolean")
 	is_recording = false
-end
+	if not finalize then return end
 
-function Peeker.finalize()
-	Peeker.stop()
 	local path = love.filesystem.getSaveDirectory() .. "/" .. OPT.out_dir
 	local flags, cmd = "", ""
 
@@ -144,6 +151,10 @@ function Peeker.update(dt)
 			thread:start(image_data, cur_frame, OPT.out_dir)
 			found = true
 			break
+		end
+		local err = thread:getError()
+		if err then
+			print(err)
 		end
 	end
 
