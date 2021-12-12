@@ -22,14 +22,14 @@ directory](https://love2d.org/wiki/love.filesystem) of your game.
 
 Here are the options/flags you can pass in `Peeker.start`:
 
-* w - **width** of the output. Defaults to size of the window.
-* h - **height** of the output. Defaults to size of the window.
-* scale - this overrides the `w` and `h` flags and is preferred to keep the aspect ratio of the output.
-* fps - **fps** of the output video. Defaults to `30`.
-* out_dir = name of the directory where the frames will be saved. Refer to the [wiki](https://love2d.org/wiki/love.filesystem) for the save directory location. Defaults to `recorder_xxxx` where `xxxx` is `os.time`.
-* format - either `"mp4"`, `"mkv"`, or `"webm"` for the format of the output video. Defaults to `mp4`
-* overlay - either `"text"` or `"circle"` to display when recording status is on.
-* post_clean_frames - if **true**, the `out_dir` will be deleted after the vide output is successfully encoded.
+* `w` - **width** of the output. Defaults to size of the window.
+* `h` - **height** of the output. Defaults to size of the window.
+* `scale` - this overrides the `w` and `h` flags and is preferred to keep the aspect ratio of the output.
+* `fps` - **fps** of the output video. Defaults to `30`.
+* `out_dir` = name of the directory where the frames will be saved. Refer to the [wiki](https://love2d.org/wiki/love.filesystem) for the save directory location. Defaults to `recorder_xxxx` where `xxxx` is `os.time`.
+* `format` - either `"mp4"`, `"mkv"`, or `"webm"` for the format of the output video. Defaults to `mp4`
+* `overlay` - either `"text"` or `"circle"` to display when recording status is on.
+* `post_clean_frames` - if **true**, the `out_dir` will be deleted after the vide output is successfully encoded.
 
 ## DEPENDENCIES
 
