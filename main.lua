@@ -40,16 +40,18 @@ end
 function love.keypressed(key)
 	if key == "r" then
 		if Peeker.get_status() then
-			Peeker.stop(true)
+			Peeker.stop()
 		else
 			Peeker.start({
-				-- w = 320, --optional
-				-- h = 320, --optional
+				w = 320, --optional
+				h = 320, --optional
+				scale = 0.5, --this overrides w, h above, this is preferred to keep aspect ratio
 				-- n_threads = 2,
 				fps = 15,
 				out_dir = string.format("awesome_video"), --optional
 				-- format = "mkv", --optional
 				overlay = "circle", --or "text"
+				post_clean_frames = true,
 			})
 		end
 	end

@@ -24,6 +24,7 @@ SOFTWARE.
 
 local Peeker = {}
 
+local DEF_FPS = 30
 local MAX_N_THREAD = love.system.getProcessorCount()
 local OS = love.system.getOS()
 
@@ -67,6 +68,7 @@ function Peeker.start(opt)
 		"opt.w must be a positive integer")
 	sassert(opt.h, type(opt.h) == "number" and opt.h > 0,
 		"opt.h must be a positive integer")
+	sassert(opt.scale, type(opt.scale) == "number")
 	sassert(opt.n_threads, type(opt.n_threads) == "number" and opt.n_threads > 0,
 		"opt.n_threads must be a positive integer")
 	sassert(opt.n_threads, opt.n_threads and opt.n_threads <= MAX_N_THREAD,
@@ -80,13 +82,23 @@ function Peeker.start(opt)
 		"opt.format must be either: " .. str_supported_formats)
 	sassert(opt.overlay, type(opt.overlay) == "string"
 		and (opt.overlay == "circle" or opt.overlay == "text"))
+	sassert(opt.post_clean_frames, type(opt.post_clean_frames) == "boolean")
+
+	OPT = opt
 
 	local ww, wh = love.graphics.getDimensions()
-	OPT = opt
 	OPT.w = OPT.w or ww
 	OPT.h = OPT.h or wh
+	if OPT.scale then
+		OPT.orig_sx, OPT.orig_sy = 1/OPT.scale, 1/OPT.scale
+		OPT.sx, OPT.sy = OPT.scale, OPT.scale
+	else
+		OPT.orig_sx, OPT.orig_sy = ww/OPT.w, wh/OPT.h
+		OPT.sx, OPT.sy = OPT.w/ww, OPT.h/wh
+	end
+
 	OPT.n_threads = OPT.n_threads or MAX_N_THREAD
-	OPT.fps = OPT.fps or 15
+	OPT.fps = OPT.fps or DEF_FPS
 	OPT.format = OPT.format or "mp4"
 	OPT.out_dir = OPT.out_dir or string.format("recording_" .. os.time())
 	OPT.flags = select(3, love.window.getMode())
@@ -121,14 +133,16 @@ function Peeker.stop(finalize)
 		flags = "-filter:v format=yuv420p -movflags +faststart"
 	end
 
+	local out_file = string.format("../%s.%s", OPT.out_dir, OPT.format)
+
 	if OS == "Linux" then
-		local cmd_ffmpeg = string.format("ffmpeg -framerate %d -i '%%04d.png' %s output.%s;",
-			OPT.fps, flags, OPT.format)
+		local cmd_ffmpeg = string.format("ffmpeg -framerate %d -i '%%04d.png' %s %s;",
+			OPT.fps, flags, out_file)
 		local cmd_cd = string.format("cd '%s'", path)
 		cmd = string.format("bash -c '%s && %s'", cmd_cd, cmd_ffmpeg)
 	elseif OS == "Windows" then
-		local cmd_ffmpeg = string.format("ffmpeg -framerate %d -i %%04d.png %s output.%s",
-			OPT.fps, flags, OPT.format)
+		local cmd_ffmpeg = string.format("ffmpeg -framerate %d -i %%04d.png %s %s",
+			OPT.fps, flags, out_file)
 		local cmd_cd = string.format("cd /d %q", path)
 		cmd = string.format("%s && %s", cmd_cd, cmd_ffmpeg)
 	end
@@ -138,6 +152,16 @@ function Peeker.stop(finalize)
 		local res = os.execute(cmd)
 		local msg = res == 0 and "OK" or "PROBLEM ENCOUNTERED"
 		print("Video creation status: " .. msg)
+
+		if res == 0 and OPT.post_clean_frames then
+			print("cleaning: " .. OPT.out_dir)
+			for _, file in ipairs(love.filesystem.getDirectoryItems(OPT.out_dir)) do
+				love.filesystem.remove(OPT.out_dir .. "/" .. file)
+			end
+
+			local res_rmd = love.filesystem.remove(OPT.out_dir)
+			print("removed dir: " .. tostring(res_rmd))
+		end
 	end
 end
 
@@ -152,6 +176,7 @@ function Peeker.update(dt)
 			found = true
 			break
 		end
+
 		local err = thread:getError()
 		if err then
 			print(err)
@@ -177,12 +202,21 @@ function Peeker.attach()
 		depth = OPT.flags.depth,
 	})
 	love.graphics.clear()
+	love.graphics.push()
+	love.graphics.scale(OPT.sx, OPT.sy)
 end
 
 function Peeker.detach()
 	if not is_recording then return end
+	local r, g, b, a = love.graphics.getColor()
+	love.graphics.pop()
 	love.graphics.setCanvas()
+	love.graphics.setColor(1, 1, 1)
+
+	love.graphics.push()
+	love.graphics.scale(OPT.orig_sx, OPT.orig_sy)
 	love.graphics.draw(canvas)
+	love.graphics.pop()
 
 	if OPT.overlay then
 		love.graphics.setColor(1, 0, 0, 1)
@@ -194,12 +228,7 @@ function Peeker.detach()
 	end
 end
 
-function Peeker.get_status()
-	return is_recording
-end
-
-function Peeker.get_current_frame()
-	return cur_frame
-end
+function Peeker.get_status() return is_recording end
+function Peeker.get_current_frame() return cur_frame end
 
 return Peeker
