@@ -35,6 +35,6 @@ Here are the options/flags you can pass in `Peeker.start`:
 
 [FFMPEG](https://ffmpeg.org/) is required.
 
-* For now Linux is fully supported.
-* Windows is partially supported (requires testing as I do not have a Windows machine)
-* PR for other OS is welcome
+## NOTES
+
+* Only Linux and Windows are supported for now. PRs for other OS are welcome :)
