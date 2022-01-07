@@ -127,7 +127,8 @@ function Peeker.stop(finalize)
 	if not finalize then return end
 
 	local path = love.filesystem.getSaveDirectory() .. "/" .. OPT.out_dir
-	local flags, cmd = "", ""
+	local flags = ""
+	local cmd
 
 	if OPT.format == "mp4" then
 		flags = "-filter:v format=yuv420p -movflags +faststart"
