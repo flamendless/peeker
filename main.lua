@@ -23,36 +23,37 @@ function love.update(dt)
 end
 
 function love.draw()
-	Peeker.attach()
-		love.graphics.clear(0, 0, 0, 1)
-		love.graphics.setColor(1, 0, 0, 1)
-		for _, c in ipairs(circles) do
-			love.graphics.circle(c.fill,
-				c.x + math.sin(timer) * 64 * c.dir,
-				c.y + math.cos(timer) * 64 * c.dir,
-				c.radius)
-		end
-		love.graphics.setColor(1, 1, 1, 1)
-		love.graphics.print("Frame recorded: " .. tostring(Peeker.get_current_frame()), 32, 64)
-	Peeker.detach()
+	love.graphics.clear(0, 0, 0, 1)
+	love.graphics.setColor(1, 0, 0, 1)
+	for _, c in ipairs(circles) do
+		love.graphics.circle(c.fill,
+			c.x + math.sin(timer) * 64 * c.dir,
+			c.y + math.cos(timer) * 64 * c.dir,
+			c.radius)
+	end
+	love.graphics.setColor(1, 1, 1, 1)
+	love.graphics.print("Frame recorded: " .. tostring(Peeker.get_current_frame()), 32, 64)
 end
 
 function love.keypressed(key)
 	if key == "r" then
-		if Peeker.get_status() then
-			Peeker.stop()
+		if love.keyboard.isDown('lshift', 'rshift') then
+			print("Peeker: Finalize recording. File: ", Peeker.get_out_dir())
+			Peeker.stop(true)
 		else
-			Peeker.start({
-				w = 320, --optional
-				h = 320, --optional
-				scale = 0.5, --this overrides w, h above, this is preferred to keep aspect ratio
-				-- n_threads = 2,
-				fps = 15,
-				out_dir = string.format("awesome_video"), --optional
-				-- format = "mkv", --optional
-				overlay = "circle", --or "text"
-				post_clean_frames = true,
-			})
+			if Peeker.get_status() then
+				print("Peeker: Stopped recording")
+				Peeker.stop()
+			else
+				print("Peeker: Started recording")
+				Peeker.start({
+						-- n_threads = 2,
+						fps = 15,
+						out_dir = string.format("awesome_video"), --optional
+						-- format = "mkv", --optional
+						post_clean_frames = true,
+					})
+			end
 		end
 	end
 end
