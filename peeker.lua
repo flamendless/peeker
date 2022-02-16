@@ -62,6 +62,22 @@ local function within_itable(v, t)
 	return false
 end
 
+local function unique_filename(filepath, format)
+	local orig = filepath
+	if format then
+		format = ".".. format
+	else
+		format = ""
+	end
+	filepath = orig .. format
+	local n = 0
+	while love.filesystem.getInfo(filepath) do
+		n = n + 1
+		filepath = orig .. n .. format
+	end
+	return filepath
+end
+
 function Peeker.start(opt)
 	assert(type(opt) == "table")
 	sassert(opt.w, type(opt.w) == "number" and opt.w > 0,
@@ -103,12 +119,7 @@ function Peeker.start(opt)
 	OPT.out_dir = OPT.out_dir or string.format("recording_" .. os.time())
 	OPT.flags = select(3, love.window.getMode())
 
-	local n = 0
-	local orig = OPT.out_dir
-	while (love.filesystem.getInfo(OPT.out_dir)) do
-		n = n + 1
-		OPT.out_dir = orig .. n
-	end
+	OPT.out_dir = unique_filename(OPT.out_dir)
 	love.filesystem.createDirectory(OPT.out_dir)
 
 	for i = 1, OPT.n_threads do
@@ -126,7 +137,7 @@ function Peeker.stop(finalize)
 	is_recording = false
 	if not finalize then return end
 
-	local path = love.filesystem.getSaveDirectory() .. "/" .. OPT.out_dir
+	local path = Peeker.get_out_dir()
 	local flags = ""
 	local cmd
 
@@ -134,7 +145,7 @@ function Peeker.stop(finalize)
 		flags = "-filter:v format=yuv420p -movflags +faststart"
 	end
 
-	local out_file = string.format("../%s.%s", OPT.out_dir, OPT.format)
+	local out_file = "../".. unique_filename(OPT.out_dir, OPT.format)
 
 	if OS == "Linux" then
 		local cmd_ffmpeg = string.format("ffmpeg -framerate %d -i '%%04d.png' %s %s;",
@@ -231,5 +242,8 @@ end
 
 function Peeker.get_status() return is_recording end
 function Peeker.get_current_frame() return cur_frame end
+function Peeker.get_out_dir()
+	return love.filesystem.getSaveDirectory() .."/".. OPT.out_dir
+end
 
 return Peeker
